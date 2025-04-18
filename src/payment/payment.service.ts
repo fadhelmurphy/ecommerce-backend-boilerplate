@@ -1,6 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common"
 import type { ConfigService } from "@nestjs/config"
-import axios from "axios"
 import * as crypto from "crypto"
 
 @Injectable()
@@ -51,16 +50,23 @@ export class PaymentService {
         metadata: data.metadata,
       }
 
-      const response = await axios.post(`${this.apiUrl}/v2/charge`, payload, {
+      const response = await fetch(`${this.apiUrl}/v2/charge`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
           Authorization: `Basic ${Buffer.from(`${this.serverKey}:`).toString("base64")}`,
         },
+        body: JSON.stringify(payload),
       })
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}, message: ${await response.text()}`)
+      }
+
+      const responseData = await response.json()
       this.logger.log(`Created payment intent for order: ${data.orderId}`)
-      return response.data
+      return responseData
     } catch (error) {
       this.logger.error(`Error creating payment intent: ${error.message}`)
       throw error
@@ -69,14 +75,19 @@ export class PaymentService {
 
   async getPaymentStatus(orderId: string) {
     try {
-      const response = await axios.get(`${this.apiUrl}/v2/${orderId}/status`, {
+      const response = await fetch(`${this.apiUrl}/v2/${orderId}/status`, {
+        method: "GET",
         headers: {
           Accept: "application/json",
           Authorization: `Basic ${Buffer.from(`${this.serverKey}:`).toString("base64")}`,
         },
       })
 
-      return response.data
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}, message: ${await response.text()}`)
+      }
+
+      return response.json()
     } catch (error) {
       this.logger.error(`Error retrieving payment status: ${error.message}`)
       throw error
@@ -91,16 +102,23 @@ export class PaymentService {
         reason: "Customer requested refund",
       }
 
-      const response = await axios.post(`${this.apiUrl}/v2/${orderId}/refund`, payload, {
+      const response = await fetch(`${this.apiUrl}/v2/${orderId}/refund`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
           Authorization: `Basic ${Buffer.from(`${this.serverKey}:`).toString("base64")}`,
         },
+        body: JSON.stringify(payload),
       })
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}, message: ${await response.text()}`)
+      }
+
+      const responseData = await response.json()
       this.logger.log(`Refunded payment for order: ${orderId}`)
-      return response.data
+      return responseData
     } catch (error) {
       this.logger.error(`Error refunding payment: ${error.message}`)
       throw error
@@ -109,20 +127,23 @@ export class PaymentService {
 
   async cancelPayment(orderId: string) {
     try {
-      const response = await axios.post(
-        `${this.apiUrl}/v2/${orderId}/cancel`,
-        {},
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-            Authorization: `Basic ${Buffer.from(`${this.serverKey}:`).toString("base64")}`,
-          },
+      const response = await fetch(`${this.apiUrl}/v2/${orderId}/cancel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Basic ${Buffer.from(`${this.serverKey}:`).toString("base64")}`,
         },
-      )
+        body: JSON.stringify({}),
+      })
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}, message: ${await response.text()}`)
+      }
+
+      const responseData = await response.json()
       this.logger.log(`Cancelled payment for order: ${orderId}`)
-      return response.data
+      return responseData
     } catch (error) {
       this.logger.error(`Error cancelling payment: ${error.message}`)
       throw error
